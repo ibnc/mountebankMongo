@@ -20,7 +20,6 @@ function create (config, logger) {
             await client.connect();
             const doc = {};
             doc[imposter.port] = imposter;
-            // await database.collection("imposters").insertOne(doc).toJSON();
             await client.db(config.mongo.db).collection("imposters").insertOne(doc);
         } finally {
             await client.close();
@@ -36,14 +35,6 @@ function create (config, logger) {
      */
     async function get (id) {
         let result;
-        // await MongoClient.connect(config.mongo.uri, function(err, client) {
-        //     // const database = client.db(config.mongo.db);
-        //     const options = {};
-        //     options[id] = 1;
-        //     result = client.db(config.mongo.db).collection("imposters").findOne({}, options);
-        //     client.close();
-        //     return result;
-        // });
         try {
             await client.connect();
             const database = client.db(config.mongo.db);
@@ -58,8 +49,6 @@ function create (config, logger) {
         } else {
             return null;
         }
-        // return result[String(id)] || null;
-        // return imposters[String(id)] || null;
     }
 
     /**
@@ -68,7 +57,14 @@ function create (config, logger) {
      * @returns {Object} - all imposters keyed by port
      */
     async function all () {
-        // return Promise.all(Object.keys(imposters).map(get));
+        let result = [];
+        try {
+            await client.connect();
+            result = await client.db(config.mongo.db).collection("imposters").find().toArray();
+        } finally {
+            await client.close();
+        }
+        return result.map((imp) => { return Object.entries(imp)[0][1]; });
     }
 
     /**
@@ -123,14 +119,12 @@ function create (config, logger) {
      * @returns {Object} - the deletion promise
      */
     async function deleteAll () {
-        // const ids = Object.keys(imposters),
-        //     promises = ids.map(id => imposters[id].stop());
-
-        // ids.forEach(id => {
-        //     delete imposters[id];
-        //     delete stubRepos[id];
-        // });
-        // await Promise.all(promises);
+        try {
+            await client.connect();
+            await client.db(config.mongo.db).collection("imposters").deleteMany({});
+        } finally {
+            await client.close();
+        }
     }
 
     /**
@@ -170,11 +164,6 @@ function create (config, logger) {
     };
 }
 async function migrate (config) {
-    // MongoClient.connect(config.mongo.uri, function (err, client) {
-    //     const database = client.db(config.mongo.db);
-    //     database.createCollection("imposters");
-    //     client.close();
-    // });
     const client = new MongoClient(config.mongo.uri);
     try {
         await client.connect();
