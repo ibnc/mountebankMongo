@@ -1,9 +1,10 @@
 'use strict';
 
-const { MongoClient } = require("mongodb");
+const { MongoClient, Code } = require("mongodb");
 
 function create (config, logger) {
-    const client = new MongoClient(config.mongo.uri);
+    const mongoCfg = getMongoConfig(config),
+        client = new MongoClient(mongoCfg.uri);
 
     /**
      * Adds a new imposter
@@ -20,7 +21,7 @@ function create (config, logger) {
             await client.connect();
             const doc = {};
             doc[imposter.port] = imposter;
-            await client.db(config.mongo.db).collection("imposters").insertOne(doc);
+            await client.db(mongoCfg.db).collection("imposters").insertOne(doc, {serializeFunctions: true});
         } finally {
             await client.close();
         }
@@ -37,14 +38,20 @@ function create (config, logger) {
         let result;
         try {
             await client.connect();
-            const database = client.db(config.mongo.db);
-            const options = {};
+            const database = client.db(mongoCfg.db);
+            const options = {serializeFunctions: true};
             options[id] = 1;
             result = await database.collection("imposters").findOne({}, options);
         } finally {
             await client.close();
         }
         if (result) {
+            Object.keys(result[String(id)]).forEach( k => {
+                if (result[String(id)][k] instanceof Code) {
+                    // dear god, kill me T_T (╯°□°)╯︵ ┻━┻
+                    result[String(id)][k] = eval(result[String(id)][k].code);
+                }
+            });
             return result[String(id)];
         } else {
             return null;
@@ -60,7 +67,7 @@ function create (config, logger) {
         let result = [];
         try {
             await client.connect();
-            result = await client.db(config.mongo.db).collection("imposters").find().toArray();
+            result = await client.db(mongoCfg.db).collection("imposters").find().toArray();
         } finally {
             await client.close();
         }
@@ -87,7 +94,7 @@ function create (config, logger) {
         let result;
         try {
             await client.connect();
-            const database = client.db(config.mongo.db);
+            const database = client.db(mongoCfg.db);
             const options = {};
             options[id] = 1;
             result = await database.collection("imposters").findOneAndDelete({}, options);
@@ -121,7 +128,7 @@ function create (config, logger) {
     async function deleteAll () {
         try {
             await client.connect();
-            await client.db(config.mongo.db).collection("imposters").deleteMany({});
+            await client.db(mongoCfg.db).collection("imposters").deleteMany({});
         } finally {
             await client.close();
         }
@@ -164,22 +171,40 @@ function create (config, logger) {
     };
 }
 async function migrate (config) {
-    const client = new MongoClient(config.mongo.uri);
+    const mongoCfg = getMongoConfig(config),
+        client = new MongoClient(mongoCfg.uri);
     try {
         await client.connect();
-        await client.db(config.mongo.db).createCollection("imposters");
+        await client.db(mongoCfg.db).createCollection("imposters");
     } finally {
         await client.close();
     }
 }
 
 async function teardown (config) {
-    const client = new MongoClient(config.mongo.uri);
+    const mongoCfg = getMongoConfig(config),
+        client = new MongoClient(mongoCfg.uri);
     try {
         await client.connect();
-        await client.db(config.mongo.db).dropCollection("imposters");
+        await client.db(mongoCfg.db).dropCollection("imposters");
     } finally {
         await client.close();
+    }
+}
+
+function getMongoConfig (config) {
+    if (!config.impostersRepositoryConfig) {
+        logger.error(`No configuration file for mongodb`);
+        return {};
+    }
+    const fs = require('fs-extra'),
+        path = require('path'),
+        cfg = path.resolve(path.relative(process.cwd(), config.impostersRepositoryConfig));
+    if (fs.existsSync(cfg)) {
+        return require(cfg);
+    } else {
+        logger.error(`configuration file does not exist`);
+        return {};
     }
 }
 
