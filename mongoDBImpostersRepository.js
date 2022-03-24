@@ -28,6 +28,19 @@ function create (config, logger) {
         return imposter;
     }
 
+    async function update (imposter) {
+        try {
+            await client.connect();
+            const doc = {};
+            doc[imposter.port] = imposter;
+            const options = {};
+            options[imposter.port] = { $exists: true };
+            await client.db(mongoCfg.db).collection("imposters").replaceOne(options, doc, {serializeFunctions: true});
+        } finally {
+            await client.close();
+        }
+    }
+
     /**
      * Gets the imposter by id
      * @memberOf module:models/inMemoryImpostersRepository#
@@ -154,13 +167,15 @@ function create (config, logger) {
      * @param {Number} id - the imposter's id
      * @returns {Object} - the stub repository
      */
-    function stubsFor (id) {
-        const imposter = get(id);
-        if (imposter) {
-            return stubRepository(imposter.stubs);
-        } else {
-            return stubRepository();
+    async function stubsFor (id) {
+        let imposter = await get(id);
+        if (!imposter) {
+            imposter = {stubs: []};
         }
+        const s = stubRepository(imposter);
+        s.addAll(imposter.stubs);
+
+        return s;
     }
 
     /**
@@ -172,63 +187,23 @@ function create (config, logger) {
     async function loadAll () {
         // return Promise.resolve();
     }
-    return {
-        add,
-        get,
-        all,
-        exists,
-        del,
-        stopAllSync,
-        deleteAll,
-        stubsFor,
-        loadAll
-    };
-}
-async function migrate (config, logger) {
-    const mongoCfg = getMongoConfig(config, logger),
-        client = new MongoClient(mongoCfg.uri);
-    try {
-        await client.connect();
-        await client.db(mongoCfg.db).createCollection("imposters");
-    } finally {
-        await client.close();
-    }
-}
-
-async function teardown (config, logger) {
-    const mongoCfg = getMongoConfig(config, logger),
-        client = new MongoClient(mongoCfg.uri);
-    try {
-        await client.connect();
-        await client.db(mongoCfg.db).dropCollection("imposters");
-    } finally {
-        await client.close();
-    }
-}
-
-function getMongoConfig (config, logger) {
-    if (!config.impostersRepositoryConfig) {
-        logger.error(`No configuration file for mongodb`);
-        return {};
-    }
-    const fs = require('fs-extra'),
-        path = require('path'),
-        cfg = path.resolve(path.relative(process.cwd(), config.impostersRepositoryConfig));
-    if (fs.existsSync(cfg)) {
-        return require(cfg);
-    } else {
-        logger.error(`configuration file does not exist`);
-        return {};
-    }
-}
 
 /**
  * Creates the stubs repository for a single imposter
  * @returns {Object}
  */
-function stubRepository (d) {
-    const stubs = d || [];
+function stubRepository (imposter) {
+    const stubs = imposter.stubs;
     let requests = [];
+
+    async function reindex () {
+        // stubIndex() is used to find the right spot to insert recorded
+        // proxy responses. We reindex after every state change
+        stubs.forEach((stub, index) => {
+            stub.stubIndex = async () => index;
+        });
+        await update(imposter);
+    }
 
     /**
      * Returns the first stub whose predicates match the filter, or a default one if none match
@@ -246,6 +221,12 @@ function stubRepository (d) {
         return { success: false, stub: wrap() };
     }
 
+    async function addAll (newStubs) {
+        newStubs.forEach(stub => {
+            stubs.push(wrap(stub));
+        });
+    }
+
     /**
      * Adds a new stub
      * @memberOf module:models/inMemoryImpostersRepository#
@@ -254,7 +235,7 @@ function stubRepository (d) {
      */
     async function add (stub) {
         stubs.push(wrap(stub));
-        // reindex();
+        reindex();
     }
 
     /**
@@ -266,7 +247,7 @@ function stubRepository (d) {
      */
     async function insertAtIndex (stub, index) {
         stubs.splice(index, 0, wrap(stub));
-        // reindex();
+        reindex();
     }
 
     /**
@@ -280,7 +261,7 @@ function stubRepository (d) {
             stubs.pop();
         }
         newStubs.forEach(stub => add(stub));
-        // reindex();
+        reindex();
     }
 
     /**
@@ -297,7 +278,7 @@ function stubRepository (d) {
         }
 
         stubs[index] = wrap(newStub);
-        // reindex();
+        reindex();
     }
 
     /**
@@ -313,7 +294,7 @@ function stubRepository (d) {
         }
 
         stubs.splice(index, 1);
-        // reindex();
+        reindex();
     }
 
     /**
@@ -382,52 +363,6 @@ function stubRepository (d) {
         // requests = [];
     }
 
-    return {
-        count: () => stubs.length,
-        first,
-        add,
-        insertAtIndex,
-        overwriteAll,
-        overwriteAtIndex,
-        deleteAtIndex,
-        toJSON,
-        deleteSavedProxyResponses,
-        addRequest,
-        loadRequests,
-        deleteSavedRequests
-    };
-}
-/**
- * An abstraction for loading imposters from in-memory
- * @module
- */
-
-function repeatsFor (response) {
-    return response.repeat || 1;
-}
-
-function repeatTransform (responses) {
-    const result = [];
-    let response, repeats;
-
-    for (let i = 0; i < responses.length; i += 1) {
-        response = responses[i];
-        repeats = repeatsFor(response);
-        for (let j = 0; j < repeats; j += 1) {
-            result.push(response);
-        }
-    }
-    return result;
-}
-
-function createResponse (responseConfig, stubIndexFn) {
-    const cloned = JSON.parse(JSON.stringify(responseConfig)) || { is: {} };
-
-    cloned.stubIndex = stubIndexFn ? stubIndexFn : () => Promise.resolve(0);
-
-    return cloned;
-}
-
 function wrap (stub = {}) {
     const cloned = stub,
     statefulResponses = repeatTransform(cloned.responses || []);
@@ -438,10 +373,12 @@ function wrap (stub = {}) {
      * @param {Object} response - the response to add
      * @returns {Object} - the promise
      */
+    //TODO this should update the DB
     cloned.addResponse = async response => {
         cloned.responses = cloned.responses || [];
         cloned.responses.push(response);
         statefulResponses.push(response);
+        await update(imposter);
         return response;
     };
 
@@ -481,9 +418,110 @@ function wrap (stub = {}) {
             responseConfig,
             processingTime
         });
+        await update(imposter);
     };
 
     return cloned;
 }
+
+    return {
+        count: () => stubs.length,
+        first,
+        addAll,
+        add,
+        insertAtIndex,
+        overwriteAll,
+        overwriteAtIndex,
+        deleteAtIndex,
+        toJSON,
+        deleteSavedProxyResponses,
+        addRequest,
+        loadRequests,
+        deleteSavedRequests
+    };
+}
+    return {
+        add,
+        get,
+        all,
+        exists,
+        del,
+        stopAllSync,
+        deleteAll,
+        stubsFor,
+        loadAll
+    };
+}
+async function migrate (config, logger) {
+    const mongoCfg = getMongoConfig(config, logger),
+        client = new MongoClient(mongoCfg.uri);
+    try {
+        await client.connect();
+        await client.db(mongoCfg.db).createCollection("imposters");
+    } finally {
+        await client.close();
+    }
+}
+
+async function teardown (config, logger) {
+    const mongoCfg = getMongoConfig(config, logger),
+        client = new MongoClient(mongoCfg.uri);
+    try {
+        await client.connect();
+        await client.db(mongoCfg.db).dropCollection("imposters");
+    } finally {
+        await client.close();
+    }
+}
+
+function getMongoConfig (config, logger) {
+    if (!config.impostersRepositoryConfig) {
+        logger.error(`No configuration file for mongodb`);
+        return {};
+    }
+    const fs = require('fs-extra'),
+        path = require('path'),
+        cfg = path.resolve(path.relative(process.cwd(), config.impostersRepositoryConfig));
+    if (fs.existsSync(cfg)) {
+        return require(cfg);
+    } else {
+        logger.error(`configuration file does not exist`);
+        return {};
+    }
+}
+/**
+ * An abstraction for loading imposters from in-memory
+ * @module
+ */
+
+function repeatsFor (response) {
+    return response.repeat || 1;
+}
+
+function repeatTransform (responses) {
+    const result = [];
+    let response, repeats;
+
+    for (let i = 0; i < responses.length; i += 1) {
+        response = responses[i];
+        repeats = repeatsFor(response);
+        for (let j = 0; j < repeats; j += 1) {
+            result.push(response);
+        }
+    }
+    return result;
+}
+
+function createResponse (responseConfig, stubIndexFn) {
+    let cloned = { is: {} };
+    if (responseConfig) {
+        cloned = JSON.parse(JSON.stringify(responseConfig));
+    }
+
+    cloned.stubIndex = stubIndexFn ? stubIndexFn : () => Promise.resolve(0);
+
+    return cloned;
+}
+
 
 module.exports = { create, migrate, teardown };
