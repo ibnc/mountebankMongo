@@ -168,14 +168,31 @@ function create (config, logger) {
      * @returns {Object} - the stub repository
      */
     async function stubsFor (id) {
-        let imposter = await get(id);
-        if (!imposter) {
-            imposter = {stubs: []};
-        }
-        const s = stubRepository(imposter);
-        s.addAll(imposter.stubs);
+        // const s = stubRepository({stubs: []});
+        // await get(id).then(result => {
+        //     if (result) {
+        //         s.overwriteAll(result.stubs);
+        //         // const s = stubRepository(imposter);
+        //         // s.addAll(imposter.stubs);
+        //     }
 
-        return s;
+        // });
+        // return s;
+        return await get(id).then(imposter => {
+            if (!imposter) {
+                imposter = {stubs: []};
+            }
+            return stubRepository(imposter);
+        });
+
+//         let imposter = await get(id);
+//         if (!imposter) {
+//             imposter = {stubs: []};
+//         }
+//         const s = stubRepository(imposter);
+//         s.addAll(imposter.stubs);
+
+//         return s;
     }
 
     /**
@@ -192,9 +209,10 @@ function create (config, logger) {
  * Creates the stubs repository for a single imposter
  * @returns {Object}
  */
-function stubRepository (imposter) {
-    const stubs = imposter.stubs;
+async function stubRepository (imposter) {
+    const stubs = [];
     let requests = [];
+    await addAll(imposter.stubs);
 
     async function reindex () {
         // stubIndex() is used to find the right spot to insert recorded
@@ -202,6 +220,7 @@ function stubRepository (imposter) {
         stubs.forEach((stub, index) => {
             stub.stubIndex = async () => index;
         });
+        imposter.stubs = stubs;
         await update(imposter);
     }
 
@@ -225,6 +244,7 @@ function stubRepository (imposter) {
         newStubs.forEach(stub => {
             stubs.push(wrap(stub));
         });
+      await reindex();
     }
 
     /**
@@ -235,7 +255,7 @@ function stubRepository (imposter) {
      */
     async function add (stub) {
         stubs.push(wrap(stub));
-        reindex();
+        await reindex();
     }
 
     /**
@@ -247,7 +267,7 @@ function stubRepository (imposter) {
      */
     async function insertAtIndex (stub, index) {
         stubs.splice(index, 0, wrap(stub));
-        reindex();
+        await reindex();
     }
 
     /**
@@ -260,8 +280,7 @@ function stubRepository (imposter) {
         while (stubs.length > 0) {
             stubs.pop();
         }
-        newStubs.forEach(stub => add(stub));
-        reindex();
+        await addAll(newStubs);
     }
 
     /**
@@ -272,13 +291,13 @@ function stubRepository (imposter) {
      * @returns {Object} - the promise
      */
     async function overwriteAtIndex (newStub, index) {
-        // const errors = require('../util/errors');
+        const errors = require('./utils/errors');
         if (typeof stubs[index] === 'undefined') {
-            // throw errors.MissingResourceError(`no stub at index ${index}`);
+            throw errors.MissingResourceError(`no stub at index ${index}`);
         }
 
         stubs[index] = wrap(newStub);
-        reindex();
+        await reindex();
     }
 
     /**
@@ -288,13 +307,13 @@ function stubRepository (imposter) {
      * @returns {Object} - the promise
      */
     async function deleteAtIndex (index) {
-        // const errors = require('../util/errors');
+        const errors = require('./utils/errors');
         if (typeof stubs[index] === 'undefined') {
-            // throw errors.MissingResourceError(`no stub at index ${index}`);
+            throw errors.MissingResourceError(`no stub at index ${index}`);
         }
 
         stubs.splice(index, 1);
-        reindex();
+        await reindex();
     }
 
     /**
@@ -316,18 +335,22 @@ function stubRepository (imposter) {
         return cloned;
     }
 
+    function isRecordedResponse (response) {
+        return response.is && typeof response.is._proxyResponseTime === 'number';
+    }
+
     /**
      * Removes the saved proxy responses
      * @memberOf module:models/inMemoryImpostersRepository#
      * @returns {Object} - Promise
      */
     async function deleteSavedProxyResponses () {
-        // const allStubs = await toJSON();
-        // allStubs.forEach(stub => {
-        //     stub.responses = stub.responses.filter(response => !isRecordedResponse(response));
-        // });
-        // const nonProxyStubs = allStubs.filter(stub => stub.responses.length > 0);
-        // await overwriteAll(nonProxyStubs);
+        const allStubs = await toJSON();
+        allStubs.forEach(stub => {
+            stub.responses = stub.responses.filter(response => !isRecordedResponse(response));
+        });
+        const nonProxyStubs = allStubs.filter(stub => stub.responses.length > 0);
+        await overwriteAll(nonProxyStubs);
     }
 
     /**
@@ -337,11 +360,11 @@ function stubRepository (imposter) {
      * @returns {Object} - the promise
      */
     async function addRequest (request) {
-        // const helpers = require('../util/helpers');
+        const helpers = require('./utils/helpers');
 
-        // const recordedRequest = helpers.clone(request);
-        // recordedRequest.timestamp = new Date().toJSON();
-        // requests.push(recordedRequest);
+        const recordedRequest = helpers.clone(request);
+        recordedRequest.timestamp = new Date().toJSON();
+        requests.push(recordedRequest);
     }
 
     /**
@@ -350,7 +373,7 @@ function stubRepository (imposter) {
      * @returns {Object} - the promise resolving to the array of requests
      */
     async function loadRequests () {
-        // return requests;
+        return requests;
     }
 
     /**
@@ -360,11 +383,11 @@ function stubRepository (imposter) {
      * @returns {Object} - Promise
      */
     async function deleteSavedRequests () {
-        // requests = [];
+        requests = [];
     }
 
 function wrap (stub = {}) {
-    const cloned = stub,
+    const cloned = JSON.parse(JSON.stringify(stub)),
     statefulResponses = repeatTransform(cloned.responses || []);
 
     /**
@@ -477,7 +500,8 @@ async function teardown (config, logger) {
 function getMongoConfig (config, logger) {
     if (!config.impostersRepositoryConfig) {
         logger.error(`No configuration file for mongodb`);
-        return {};
+        // return {};
+        return {uri: "mongodb://127.0.0.1:27017", db: "mongo"};
     }
     const fs = require('fs-extra'),
         path = require('path'),
@@ -486,7 +510,8 @@ function getMongoConfig (config, logger) {
         return require(cfg);
     } else {
         logger.error(`configuration file does not exist`);
-        return {};
+        // return {};
+        return {uri: "mongodb://127.0.0.1:27017", db: "mongo"};
     }
 }
 /**

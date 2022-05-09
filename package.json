@@ -10,7 +10,7 @@
   },
   "scripts": {
     "lint": "eslint mongoDBImpostersRepository.js test/",
-    "test:unit": "mocha --forbid-only --forbid-pending --reporter mocha-multi-reporters configFile=test/config.json 'test/**/*.js'",
+    "test:unit": "mocha --forbid-only --forbid-pending --reporter mocha-multi-reporters 'test/**/*.js'",
     "test:cover": "nyc --reporter=lcov --reporter=text npm run test:unit",
     "test": "npm run lint && npm run test:cover && npm run test:api && npm run test:cli && npm run test:js"
   },
