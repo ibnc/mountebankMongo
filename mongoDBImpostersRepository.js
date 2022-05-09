@@ -129,7 +129,15 @@ function create (config, logger) {
             await client.close();
         }
         if (result.value) {
-            return result.value[String(id)];
+          const res = result.value[String(id)];
+            if (res.stop) {
+                const stopFn = eval(res.stop.code);
+                if (typeof stopFn === 'function') {
+                  stopFn();
+                }
+              delete res.stop
+            }
+            return res;
         } else {
             return null;
         }
@@ -153,12 +161,23 @@ function create (config, logger) {
      * @returns {Object} - the deletion promise
      */
     async function deleteAll () {
-        try {
-            await client.connect();
-            await client.db(mongoCfg.db).collection("imposters").deleteMany({});
-        } finally {
-            await client.close();
-        }
+      const imposters = await all();
+      if (imposters.length > 0) {
+          imposters.forEach((imposter) => {
+            if (imposter.stop) {
+                const stopFn = eval(imposter.stop.code);
+                if (typeof stopFn === 'function') {
+                  stopFn();
+                }
+            }
+          });
+          try {
+              await client.connect();
+              await client.db(mongoCfg.db).collection("imposters").deleteMany({});
+          } finally {
+              await client.close();
+          }
+      }
     }
 
     /**
