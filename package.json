@@ -1,5 +1,5 @@
 {
-  "name": "burp",
+  "name": "MongoDB Imposters Repository",
   "version": "0.0.1",
   "author": "Isabelle Carter <isabellenataliecarter@gmail.com>",
   "description": "",
@@ -12,7 +12,8 @@
     "lint": "eslint mongoDBImpostersRepository.js test/",
     "test:unit": "mocha --forbid-only --forbid-pending --reporter mocha-multi-reporters 'test/**/*.js'",
     "test:cover": "nyc --reporter=lcov --reporter=text npm run test:unit",
-    "test": "npm run lint && npm run test:cover && npm run test:api && npm run test:cli && npm run test:js"
+    "test": "npm run lint && npm run test:unit",
+    "": "mb --configfile imposters.json --customImpostersRepository mongoDBImpostersRepository.js --impostersRepositoryConfig mongo_config.json"
   },
   "files": [
     "bin",
@@ -27,19 +28,15 @@
     "test",
     "stub",
     "mock",
-    "double",
-    "smtp",
-    "email",
-    "http",
-    "https",
-    "tcp",
-    "net",
-    "service virtualization"
+    "mongodb",
+    "mountebank"
+
   ],
   "dependencies": {
     "mongodb": "4.1.3"
   },
   "devDependencies": {
+    "mountebank": "^2.6.0",
     "coveralls": "3.1.1",
     "eslint": "7.32.0",
     "eslint-plugin-node": "11.1.0",
