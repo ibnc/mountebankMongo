@@ -2,9 +2,15 @@
 
 const { MongoClient, Code } = require('mongodb');
 
+/*TODO:
+ * Error handling
+ * Address async/sync issues with stubsFor and stopAllSync
+ * setup functional testing with mountebank server
+*/
 function create (config, logger) {
   const mongoCfg = getMongoConfig(config, logger),
     client = new MongoClient(mongoCfg.uri);
+  client.connect();
 
   /**
    * Adds a new imposter
@@ -17,28 +23,18 @@ function create (config, logger) {
       imposter.stubs = [];
     }
 
-    try {
-      await client.connect();
-      const doc = {};
-      doc[imposter.port] = imposter;
-      await client.db(mongoCfg.db).collection('imposters').insertOne(doc, { serializeFunctions: true });
-    } finally {
-      await client.close();
-    }
+    const doc = {};
+    doc[imposter.port] = imposter;
+    await client.db(mongoCfg.db).collection('imposters').insertOne(doc, { serializeFunctions: true });
     return imposter;
   }
 
   async function update (imposter) {
-    try {
-      await client.connect();
-      const doc = {};
-      doc[imposter.port] = imposter;
-      const options = {};
-      options[imposter.port] = { $exists: true };
-      await client.db(mongoCfg.db).collection('imposters').replaceOne(options, doc, { serializeFunctions: true });
-    } finally {
-      await client.close();
-    }
+    const doc = {},
+      options = {};
+    doc[imposter.port] = imposter;
+    options[imposter.port] = { $exists: true };
+    await client.db(mongoCfg.db).collection('imposters').replaceOne(options, doc, { serializeFunctions: true });
   }
 
   /**
@@ -49,15 +45,11 @@ function create (config, logger) {
    */
   async function get (id) {
     let result;
-    try {
-      await client.connect();
-      const database = client.db(mongoCfg.db);
-      const options = {};
-      options[id] = { $exists: true };
-      result = await database.collection('imposters').findOne(options, { serializeFunctions: true });
-    } finally {
-      await client.close();
-    }
+    const database = client.db(mongoCfg.db),
+      options = {};
+    options[id] = { $exists: true };
+    result = await database.collection('imposters').findOne(options, { serializeFunctions: true });
+
     if (result) {
       Object.keys(result[String(id)]).forEach(k => {
         if (result[String(id)][k] instanceof Code) {
@@ -77,13 +69,7 @@ function create (config, logger) {
    * @returns {Object} - all imposters keyed by port
    */
   async function all () {
-    let result = [];
-    try {
-      await client.connect();
-      result = await client.db(mongoCfg.db).collection('imposters').find().toArray();
-    } finally {
-      await client.close();
-    }
+    let result = await client.db(mongoCfg.db).collection('imposters').find().toArray();
     return result.map(imp => { return Object.entries(imp)[0][1]; });
   }
 
@@ -95,15 +81,11 @@ function create (config, logger) {
    */
   async function exists (id) {
     let result;
-    try {
-      await client.connect();
-      const database = client.db(mongoCfg.db);
-      const options = {};
-      options[id] = { $exists: true };
-      result = await database.collection('imposters').findOne(options);
-    } finally {
-      await client.close();
-    }
+    const database = client.db(mongoCfg.db),
+      options = {};
+    options[id] = { $exists: true };
+    result = await database.collection('imposters').findOne(options);
+
     if (result) {
       return true;
     } else {
@@ -119,15 +101,11 @@ function create (config, logger) {
    */
   async function del (id) {
     let result;
-    try {
-      await client.connect();
-      const database = client.db(mongoCfg.db);
-      const options = {};
-      options[id] = { $exists: true };
-      result = await database.collection('imposters').findOneAndDelete(options);
-    } finally {
-      await client.close();
-    }
+    const database = client.db(mongoCfg.db),
+      options = {};
+    options[id] = { $exists: true };
+    result = await database.collection('imposters').findOneAndDelete(options);
+
     if (result.value) {
       const res = result.value[String(id)];
       if (res.stop) {
@@ -152,11 +130,16 @@ function create (config, logger) {
    * @memberOf module:mongoDBImpostersRepository#
    */
   function stopAllSync () {
-    // Object.keys(imposters).forEach(id => {
-    //     imposters[id].stop();
-    //     delete imposters[id];
-    //     delete stubRepos[id];
-    // });
+    deleteAll();
+    client.close();
+  }
+
+  async function teardown () {
+    try {
+      await client.db(mongoCfg.db).dropCollection('imposters');
+    } finally {
+      await client.close(true);
+    }
   }
 
   /**
@@ -175,12 +158,7 @@ function create (config, logger) {
           }
         }
       });
-      try {
-        await client.connect();
-        await client.db(mongoCfg.db).collection('imposters').deleteMany({});
-      } finally {
-        await client.close();
-      }
+      await client.db(mongoCfg.db).collection('imposters').deleteMany({});
     }
   }
 
@@ -225,7 +203,7 @@ function create (config, logger) {
    * @returns {Object} - a promise
    */
   async function loadAll () {
-    // return Promise.resolve();
+    return all();
   }
 
   /**
@@ -496,6 +474,7 @@ function create (config, logger) {
     exists,
     del,
     stopAllSync,
+    teardown,
     deleteAll,
     stubsFor,
     loadAll

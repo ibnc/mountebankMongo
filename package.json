@@ -33,7 +33,7 @@
 
   ],
   "dependencies": {
-    "mongodb": "4.1.3"
+    "mongodb": "4.7"
   },
   "devDependencies": {
     "mountebank": "^2.6.0",
