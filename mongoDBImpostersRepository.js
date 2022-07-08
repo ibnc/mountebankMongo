@@ -1,6 +1,7 @@
 'use strict';
 
 const { MongoClient, Code } = require('mongodb');
+const errors = require('./utils/errors');
 
 /*TODO:
  * Error handling
@@ -502,11 +503,10 @@ async function teardown (config, logger) {
   }
 }
 
-// TODO: error handling
 function getMongoConfig (config, logger) {
   if (!config.impostersRepositoryConfig) {
-    logger.error('No configuration file for mongodb');
-    return {};
+    logger.error('MissingConfigError: No configuration file for mongodb');
+    throw errors.MissingConfigError('mongodb configuration required');
   }
   const fs = require('fs'),
     path = require('path'),
@@ -515,7 +515,7 @@ function getMongoConfig (config, logger) {
     return require(cfg);
   } else {
     logger.error('configuration file does not exist');
-    return {};
+    throw errors.MissingConfigError('provided config file does not exist');
   }
 }
 /**
