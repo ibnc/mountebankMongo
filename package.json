@@ -12,8 +12,12 @@
     "lint": "eslint mongoDBImpostersRepository.js test/",
     "test:unit": "mocha --forbid-only --forbid-pending --reporter mocha-multi-reporters 'test/**/*.js'",
     "test:cover": "nyc --reporter=lcov --reporter=text npm run test:unit",
-    "test": "npm run lint && npm run test:unit",
-    "": "mb --configfile imposters.json --customImpostersRepository mongoDBImpostersRepository.js --impostersRepositoryConfig mongo_config.json"
+    "test:api": "node tasks/mbtest.js api",
+    "test:js": "node tasks/mbtest.js js",
+    "test:perf": "node tasks/mbtest.js perf",
+    "test:web": "node tasks/mbtest.js web",
+    "test:mb": "npm run test:js && npm run test:api",
+    "test": "npm run lint && npm run test:unit"
   },
   "files": [
     "bin",

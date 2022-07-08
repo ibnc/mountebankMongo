@@ -3,7 +3,7 @@
 const { MongoClient, Code } = require('mongodb');
 const errors = require('./utils/errors');
 
-/*TODO:
+/* TODO:
  * Error handling
  * Address async/sync issues with stubsFor and stopAllSync
  * setup functional testing with mountebank server
@@ -296,7 +296,6 @@ function create (config, logger) {
      * @returns {Object} - the promise
      */
     async function overwriteAtIndex (newStub, index) {
-      const errors = require('./utils/errors');
       if (typeof stubs[index] === 'undefined') {
         throw errors.MissingResourceError(`no stub at index ${index}`);
       }
@@ -312,7 +311,6 @@ function create (config, logger) {
      * @returns {Object} - the promise
      */
     async function deleteAtIndex (index) {
-      const errors = require('./utils/errors');
       if (typeof stubs[index] === 'undefined') {
         throw errors.MissingResourceError(`no stub at index ${index}`);
       }
@@ -487,17 +485,6 @@ async function migrate (config, logger) {
   try {
     await client.connect();
     await client.db(mongoCfg.db).createCollection('imposters');
-  } finally {
-    await client.close();
-  }
-}
-
-async function teardown (config, logger) {
-  const mongoCfg = getMongoConfig(config, logger),
-    client = new MongoClient(mongoCfg.uri);
-  try {
-    await client.connect();
-    await client.db(mongoCfg.db).dropCollection('imposters');
   } finally {
     await client.close();
   }
