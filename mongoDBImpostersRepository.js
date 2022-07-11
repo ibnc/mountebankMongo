@@ -138,6 +138,9 @@ function create (config, logger) {
 
   async function teardown () {
     try {
+      if (!client || !client.topology || !client.topology.isConnected()) {
+        await client.connect();
+      }
       await client.db(mongoCfg.db).dropCollection('imposters');
     } finally {
       await client.close(true);
