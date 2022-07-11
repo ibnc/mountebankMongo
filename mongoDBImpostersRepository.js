@@ -131,8 +131,9 @@ function create (config, logger) {
    * @memberOf module:mongoDBImpostersRepository#
    */
   function stopAllSync () {
-    deleteAll();
-    client.close();
+    deleteAll(() => {
+      client.close();
+    });
   }
 
   async function teardown () {
@@ -146,9 +147,10 @@ function create (config, logger) {
   /**
    * Deletes all imposters
    * @memberOf module:mongoDBImpostersRepository#
+   * @param {Function} callback - callback fn
    * @returns {Object} - the deletion promise
    */
-  async function deleteAll () {
+  async function deleteAll (callback) {
     const imposters = await all();
     if (imposters.length > 0) {
       imposters.forEach(imposter => {
@@ -161,6 +163,9 @@ function create (config, logger) {
       });
       await client.db(mongoCfg.db).collection('imposters').deleteMany({});
     }
+    if (callback) {
+      await client.close();
+    }
   }
 
   /**
@@ -170,31 +175,12 @@ function create (config, logger) {
    * @returns {Object} - the stub repository
    */
   async function stubsFor (id) {
-    // const s = stubRepository({stubs: []});
-    // await get(id).then(result => {
-    //     if (result) {
-    //         s.overwriteAll(result.stubs);
-    //         // const s = stubRepository(imposter);
-    //         // s.addAll(imposter.stubs);
-    //     }
-
-    // });
-    // return s;
     return await get(id).then(imposter => {
       if (!imposter) {
         imposter = { stubs: [] };
       }
       return stubRepository(imposter);
     });
-
-    //         let imposter = await get(id);
-    //         if (!imposter) {
-    //             imposter = {stubs: []};
-    //         }
-    //         const s = stubRepository(imposter);
-    //         s.addAll(imposter.stubs);
-
-    //         return s;
   }
 
   /**
@@ -204,7 +190,7 @@ function create (config, logger) {
    * @returns {Object} - a promise
    */
   async function loadAll () {
-    return all();
+    return await all();
   }
 
   /**
@@ -399,7 +385,6 @@ function create (config, logger) {
        * @param {Object} response - the response to add
        * @returns {Object} - the promise
        */
-      // TODO this should update the DB
       cloned.addResponse = async response => {
         cloned.responses = cloned.responses || [];
         cloned.responses.push(response);
@@ -540,4 +525,4 @@ function createResponse (responseConfig, stubIndexFn) {
 }
 
 
-module.exports = { create, migrate, teardown };
+module.exports = { create, migrate };
