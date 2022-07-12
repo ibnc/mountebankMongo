@@ -111,12 +111,9 @@ function create (config, logger) {
       const res = result.value[String(id)];
       if (res.stop) {
         const stopFn = eval(res.stop.code);
+
         if (typeof stopFn === 'function') {
-          if (stopFn.constructor.name === 'AsyncFunction') {
-            await stopFn();
-          } else {
-            stopFn();
-          }
+          await stopFn();
         }
         delete res.stop;
       }
@@ -130,21 +127,10 @@ function create (config, logger) {
    * Deletes all imposters synchronously; used during shutdown
    * @memberOf module:mongoDBImpostersRepository#
    */
-  function stopAllSync () {
-    deleteAll(() => {
-      client.close();
+  async function stopAllSync () {
+    await deleteAll(async () => {
+      await client.close();
     });
-  }
-
-  async function teardown () {
-    try {
-      if (!client || !client.topology || !client.topology.isConnected()) {
-        await client.connect();
-      }
-      await client.db(mongoCfg.db).dropCollection('imposters');
-    } finally {
-      await client.close(true);
-    }
   }
 
   /**
@@ -156,18 +142,18 @@ function create (config, logger) {
   async function deleteAll (callback) {
     const imposters = await all();
     if (imposters.length > 0) {
-      imposters.forEach(imposter => {
+      await imposters.forEach(async imposter => {
         if (imposter.stop) {
           const stopFn = eval(imposter.stop.code);
           if (typeof stopFn === 'function') {
-            stopFn();
+            await stopFn();
           }
         }
       });
       await client.db(mongoCfg.db).collection('imposters').deleteMany({});
     }
     if (callback) {
-      await client.close();
+      await callback();
     }
   }
 
@@ -194,6 +180,28 @@ function create (config, logger) {
    */
   async function loadAll () {
     return await all();
+  }
+
+  // For testing purposes
+  async function connect () {
+    await client.connect();
+  }
+
+  // For testing purposes
+  async function close () {
+    await client.close();
+  }
+
+  // For testing purposes
+  async function teardown () {
+    try {
+      if (!client || !client.topology || !client.topology.isConnected()) {
+        await client.connect();
+      }
+      await client.db(mongoCfg.db).dropCollection('imposters');
+    } finally {
+      await client.close(true);
+    }
   }
 
   /**
@@ -464,6 +472,8 @@ function create (config, logger) {
     teardown,
     deleteAll,
     stubsFor,
+    connect,
+    close,
     loadAll
   };
 }

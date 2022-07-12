@@ -211,6 +211,7 @@ describe('mongoDB Imposters Repository', function () {
           // eslint-disable-next-line no-shadow
           repo = mongoImpostersRepo.create(impostersRepoConfig, Logger.create());
         await repo.del(666);
+        await repo.close();
       };
       const imposter = { port: 1, value: 2, stop: stopfn };
 
@@ -222,7 +223,7 @@ describe('mongoDB Imposters Repository', function () {
 
     it('should empty the stubs associated with the imposter', async function () {
       const stub = { responses: [{ is: { key: 'value' } }] },
-        imposter = { port: 1, stubs: [stub], stop: mock().returns(Promise.resolve()) };
+        imposter = { port: 1, stubs: [stub] };
 
       await repo.add(imposterize(imposter));
       await repo.del(1);
@@ -231,52 +232,55 @@ describe('mongoDB Imposters Repository', function () {
     });
   });
 
-  // describe('#stopAllSync', function () {
-  //   it('should call stop() on all imposters and empty list', async function () {
-  //     await repo.add(imposterize({
-  //       port: 11,
-  //       value: 2
-  //     }));
-  //     await repo.add(imposterize({
-  //       port: 12,
-  //       value: 2
-  //     }));
-  //     const stopFnOne = async () => {
-  //       // eslint-disable-next-line no-shadow, node/no-missing-require
-  //       const mongoImpostersRepo = require('./mongoDBImpostersRepository'),
-  //         // eslint-disable-next-line no-shadow, node/no-missing-require
-  //         Logger = require('./test/fakeLogger'),
-  //         // eslint-disable-next-line no-shadow, node/no-missing-require
-  //         impostersRepoConfig = { impostersRepositoryConfig: './test/test_config.json' },
-  //         // eslint-disable-next-line no-shadow, node/no-missing-require
-  //         repo = mongoImpostersRepo.create(impostersRepoConfig, Logger.create());
-  //       await repo.del(11);
-  //     },
-  //       stopFnTwo = async () => {
-  //         // eslint-disable-next-line no-shadow, node/no-missing-require
-  //         const mongoImpostersRepo = require('./mongoDBImpostersRepository'),
-  //           // eslint-disable-next-line no-shadow, node/no-missing-require
-  //           Logger = require('./test/fakeLogger'),
-  //           // eslint-disable-next-line no-shadow, node/no-missing-require
-  //           impostersRepoConfig = { impostersRepositoryConfig: './test/test_config.json' },
-  //           // eslint-disable-next-line no-shadow, node/no-missing-require
-  //           repo = mongoImpostersRepo.create(impostersRepoConfig, Logger.create());
-  //         await repo.del(12);
-  //       },
+  describe('#stopAllSync', function () {
+    it('should call stop() on all imposters and empty list', async function () {
+      await repo.add(imposterize({
+        port: 11,
+        value: 2
+      }));
+      await repo.add(imposterize({
+        port: 12,
+        value: 2
+      }));
+      const stopFnOne = async () => {
+        // eslint-disable-next-line no-shadow, node/no-missing-require
+        const mongoImpostersRepo = require('./mongoDBImpostersRepository'),
+          // eslint-disable-next-line no-shadow, node/no-missing-require
+          Logger = require('./test/fakeLogger'),
+          // eslint-disable-next-line no-shadow, node/no-missing-require
+          impostersRepoConfig = { impostersRepositoryConfig: './test/test_config.json' },
+          // eslint-disable-next-line no-shadow, node/no-missing-require
+          repo = mongoImpostersRepo.create(impostersRepoConfig, Logger.create());
+        await repo.del(11);
+        await repo.close();
+      },
+        stopFnTwo = async () => {
+          // eslint-disable-next-line no-shadow, node/no-missing-require
+          const mongoImpostersRepo = require('./mongoDBImpostersRepository'),
+            // eslint-disable-next-line no-shadow, node/no-missing-require
+            Logger = require('./test/fakeLogger'),
+            // eslint-disable-next-line no-shadow, node/no-missing-require
+            impostersRepoConfig = { impostersRepositoryConfig: './test/test_config.json' },
+            // eslint-disable-next-line no-shadow, node/no-missing-require
+            repo = mongoImpostersRepo.create(impostersRepoConfig, Logger.create());
+          await repo.del(12);
+          await repo.close();
+        },
 
-  //       first = { port: 1, value: 2, stop: stopFnOne },
-  //       second = { port: 2, value: 3, stop: stopFnTwo };
+        first = { port: 1, value: 2, stop: stopFnOne },
+        second = { port: 2, value: 3, stop: stopFnTwo };
 
-  //     await repo.add(imposterize(first));
-  //     await repo.add(imposterize(second));
-  //     repo.stopAllSync();
+      await repo.add(imposterize(first));
+      await repo.add(imposterize(second));
+      await repo.stopAllSync();
 
-  //     assert.strictEqual(await repo.exists(11), false);
-  //     assert.strictEqual(await repo.exists(12), false);
-  //     const imposters = await repo.all();
-  //     assert.deepEqual(imposters, []);
-  //   });
-  // });
+      await repo.connect();
+      assert.strictEqual(await repo.exists(11), false);
+      assert.strictEqual(await repo.exists(12), false);
+      const imposters = await repo.all();
+      assert.deepEqual(imposters, []);
+    });
+  });
 
   describe('#deleteAll', function () {
     it('should call stop() on all imposters and empty list', async function () {
@@ -298,6 +302,7 @@ describe('mongoDB Imposters Repository', function () {
           // eslint-disable-next-line no-shadow, node/no-missing-require
           repo = mongoImpostersRepo.create(impostersRepoConfig, Logger.create());
         await repo.del(11);
+        await repo.close();
       },
         stopFnTwo = async () => {
           // eslint-disable-next-line no-shadow, node/no-missing-require
@@ -309,6 +314,7 @@ describe('mongoDB Imposters Repository', function () {
             // eslint-disable-next-line no-shadow, node/no-missing-require
             repo = mongoImpostersRepo.create(impostersRepoConfig, Logger.create());
           await repo.del(12);
+          await repo.close();
         },
         first = { port: 1, value: 2, stop: stopFnOne },
         second = { port: 2, value: 3, stop: stopFnTwo };
@@ -332,37 +338,6 @@ describe('mongoDB Imposters Repository', function () {
 
       assert.deepStrictEqual(imposters, []);
     });
-
-    // it('should load previously saved imposters', async function () {
-    //     if (type.name === 'inMemoryImpostersRepository') {
-    //         // Does not persist
-    //         return;
-    //     }
-
-    //     const options = { log: { level: 'info' } };
-    //     // FakeLogger hangs, maybe something to do with the ScopedLogger wrapping it in imposter.js
-    //     const logger = require('../../src/util/logger').createLogger({
-    //         console: {
-    //             colorize: true,
-    //             format: '%level: %message'
-    //         }
-    //     });
-    //     const protocols = require('../../src/models/protocols').loadProtocols(options, '', logger, () => true, repo);
-    //     await repo.add(imposterize({ port: 2526, protocol: 'tcp' }));
-    //     await repo.add(imposterize({ port: 2527, protocol: 'tcp' }));
-    //     await repo.stopAll();
-
-    //     // Validate clean state
-    //     const imposters = await repo.all();
-    //     assert.deepStrictEqual(imposters, []);
-
-    //     await repo.loadAll(protocols);
-    //     const loaded = await repo.all();
-    //     const ports = loaded.map(imposter => imposter.port);
-
-    //     assert.deepStrictEqual(ports, [2526, 2527]);
-    //     await repo.stopAll();
-    // });
   });
 
   describe('#stubsFor', function () {
