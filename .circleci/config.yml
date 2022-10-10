@@ -54,7 +54,11 @@ jobs:
       - checkout
       - run:
           name: Pull Mountebank
-          command: git clone git@github.com:bbyars/mountebank.git ../mountebank
+          command: |
+            git clone git@github.com:bbyars/mountebank.git ../mountebank
+            cd ../mountebank
+            npm install mountebank
+            cd -
       - run:
           name: Test
           command: npm run test:perf
