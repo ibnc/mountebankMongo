@@ -85,7 +85,7 @@ workflows:
           filters:
             branches:
               only: master
-      - test:
+      - unit:
           filters:
             branches:
               only: master
