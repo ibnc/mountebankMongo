@@ -40,8 +40,15 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Test
-          command: npm run test
+          name: Install Dependencies
+          command: npm ci
+      - run:
+          name: Pull Mountebank
+          command: git clone git@github.com:bbyars/mountebank.git ../mountebank
+      - run: npm test
+      - run:
+          name: Web tests
+          command: npm run test:web
 
   performance:
     executor: node-active
@@ -50,6 +57,9 @@ jobs:
       - MB_EXECUTABLE: /usr/local/bin/mb
     steps:
       - checkout
+      - run:
+          name: Install Dependencies
+          command: npm ci
       - run:
           name: Pull Mountebank
           command: git clone git@github.com:bbyars/mountebank.git ../mountebank
