@@ -34,11 +34,6 @@ jobs:
             npm ci
       - store_test_results:
           path: testResults
-      - persist_to_workspace:
-          root: .
-          paths:
-            - scripts
-            - Procfile
 
   windows:
     executor: win/default
@@ -97,8 +92,9 @@ jobs:
       - MB_EXECUTABLE: /usr/local/bin/mb
     steps:
       - checkout
-      - attach_workspace:
-          at: .
+      - run:
+        name: Pull Mountebank
+        command: git clone git@github.com:bbyars/mountebank.git ../
       - run:
           name: Test
           command: npm run test:perf
