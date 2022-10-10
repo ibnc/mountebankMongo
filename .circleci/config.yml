@@ -37,7 +37,6 @@ jobs:
       - persist_to_workspace:
           root: .
           paths:
-            - tasks
             - scripts
             - Procfile
 
@@ -97,11 +96,12 @@ jobs:
       - MB_PORT: 3535
       - MB_EXECUTABLE: /usr/local/bin/mb
     steps:
+      - checkout
       - attach_workspace:
           at: .
       - run:
           name: Test
-          command: ls -la &&  npm run test:perf
+          command: npm run test:perf
       - store_test_results:
           path: dist/test/testResults
 
