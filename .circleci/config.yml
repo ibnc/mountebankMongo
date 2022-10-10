@@ -39,7 +39,7 @@ jobs:
       - run:
           name: Pull Mountebank
           command: git clone git@github.com:bbyars/mountebank.git ../mountebank
-      - run: npm test
+      - run: npm test:unit
       - run:
           name: Web tests
           command: npm run test:web
@@ -54,6 +54,9 @@ jobs:
       - run:
           name: Pull Mountebank
           command: git clone git@github.com:bbyars/mountebank.git ../mountebank
+      - run:
+          name: eek
+          command: npm bin
       - run:
           name: Test
           command: npm run test:perf
