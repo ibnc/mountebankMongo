@@ -30,7 +30,7 @@ jobs:
       - run:
           name: Install Dependencies
           command: |
-            npm install -g mountebank
+            npm install mountebank
             npm ci
       - store_test_results:
           path: testResults
@@ -50,7 +50,7 @@ jobs:
       - run:
           name: Install Dependencies
           command: |
-            npm install -g mountebank
+            npm install mountebank
             npm ci
       - run:
           name: Test
@@ -79,7 +79,7 @@ jobs:
       - run:
           name: Install Dependencies
           command: |
-            npm install -g mountebank
+            npm install mountebank
             npm ci
       - run:
           name: Test
