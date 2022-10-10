@@ -81,6 +81,8 @@ jobs:
           command: |
             npm install mountebank
             npm ci
+            cd ..
+            git clone git@github.com:bbyars/mountebank.git
       - run:
           name: Test
           command: |
@@ -90,37 +92,17 @@ jobs:
       - store_test_results:
           path: testResults
 
-  maintenanceOutOfProcessImposters:
-    executor: node-maintenance
-    environment:
-      - MB_PORT: 3535
-      - MB_PERSISTENT: true
-      - MB_EXECUTABLE: /home/circleci/project/dist/mountebank/bin/mb
-    steps:
-      - attach_workspace:
-          at: .
-      - run:
-          name: Prepare to run out of process protocol implementations
-          command: node tasks/createProtocolsFile.js outOfProcess.json
-      - run:
-          name: Test
-          command: |
-            node tasks/mb.js start --allowInjection ---localOnly --protofile outOfProcess.json
-            (cd dist/test && npm test)
-      - store_test_results:
-          path: dist/test/testResults
-
   performance:
     executor: node-active
     environment:
       - MB_PORT: 3535
-      - MB_EXECUTABLE: /home/circleci/project/dist/mountebank/bin/mb
+      - MB_EXECUTABLE: /usr/local/bin/mb
     steps:
       - attach_workspace:
           at: .
       - run:
           name: Test
-          command: cd dist/test && npm run perf
+          command: npm run test:perf
       - store_test_results:
           path: dist/test/testResults
 
@@ -128,7 +110,7 @@ jobs:
     executor: node-active
     environment:
       - MB_PORT: 3535
-      - MB_EXECUTABLE: /home/circleci/project/dist/mountebank/bin/mb
+      - MB_EXECUTABLE: /usr/local/bin/mb
     steps:
       - attach_workspace:
           at: .
@@ -136,7 +118,7 @@ jobs:
           name: Test
           command: |
             node tasks/mb.js start --allowInjection --localOnly
-            (cd dist/test && npm run web)
+            (npm run test:web)
       - store_test_results:
           path: dist/test/testResults
 
