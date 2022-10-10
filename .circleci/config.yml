@@ -101,7 +101,7 @@ jobs:
           at: .
       - run:
           name: Test
-          command: npm run test:perf
+          command: ls -la &&  npm run test:perf
       - store_test_results:
           path: dist/test/testResults
 
