@@ -17,9 +17,6 @@ executors:
     environment:
       - MB_SLOW_TEST_TIMEOUT: 10000
 
-orbs:
-  win: circleci/windows@2.2.0
-
 jobs:
   build:
     executor: node-active
@@ -40,9 +37,6 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Install Dependencies
-          command: npm ci
-      - run:
           name: Pull Mountebank
           command: git clone git@github.com:bbyars/mountebank.git ../mountebank
       - run: npm test
@@ -57,9 +51,6 @@ jobs:
       - MB_EXECUTABLE: /usr/local/bin/mb
     steps:
       - checkout
-      - run:
-          name: Install Dependencies
-          command: npm ci
       - run:
           name: Pull Mountebank
           command: git clone git@github.com:bbyars/mountebank.git ../mountebank
