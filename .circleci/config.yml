@@ -38,6 +38,8 @@ jobs:
       - checkout
       - run: npm install
       - run: npm run test:unit
+      - store_test_results:
+          path: dist/test/testResults
 
   performance:
     executor: node-active
