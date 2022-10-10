@@ -87,6 +87,8 @@ workflows:
             branches:
               only: master
       - unit:
+          requires:
+            - build
           filters:
             branches:
               only: master
