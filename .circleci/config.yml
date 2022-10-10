@@ -83,6 +83,7 @@ jobs:
             npm ci
             cd ..
             git clone git@github.com:bbyars/mountebank.git
+            cd mountebankMongo
       - run:
           name: Test
           command: |
