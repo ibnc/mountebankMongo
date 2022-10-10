@@ -80,9 +80,3 @@ workflows:
           filters:
             branches:
               only: master
-      - web:
-          requires:
-            - build
-          filters:
-            branches:
-              only: master
