@@ -48,15 +48,12 @@ jobs:
     executor: node-active
     environment:
       - MB_PORT: 3535
-      - MB_EXECUTABLE: /usr/local/bin/mb
+      - MB_EXECUTABLE: /home/circleci/project/node_modules/.bin/mb
     steps:
       - checkout
       - run:
           name: Pull Mountebank
           command: git clone git@github.com:bbyars/mountebank.git ../mountebank
-      - run:
-          name: eek
-          command: npm bin
       - run:
           name: Test
           command: npm run test:perf
@@ -67,7 +64,7 @@ jobs:
     executor: node-active
     environment:
       - MB_PORT: 3535
-      - MB_EXECUTABLE: /usr/local/bin/mb
+      - MB_EXECUTABLE: /home/circleci/project/node_modules/.bin/mb
     steps:
       - attach_workspace:
           at: .
