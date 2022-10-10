@@ -81,9 +81,7 @@ jobs:
           command: |
             npm install mountebank
             npm ci
-            cd ..
-            git clone git@github.com:bbyars/mountebank.git
-            cd mountebankMongo
+            git clone git@github.com:bbyars/mountebank.git ../
       - run:
           name: Test
           command: |
