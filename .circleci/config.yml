@@ -85,11 +85,7 @@ workflows:
           filters:
             branches:
               only: master
-      - windows:
-          filters:
-            branches:
-              only: master
-      - mac:
+      - test:
           filters:
             branches:
               only: master
