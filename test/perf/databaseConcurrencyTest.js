@@ -6,14 +6,16 @@ const assert = require('assert'),
   fs = require('fs-extra');
 
 describe('database concurrency', function () {
+  let repom;
   this.timeout(120000);
 
   before(async function () {
     await mongoRepo.migrate(impostersRepoConfig, logger());
+    repom = await mongoRepo.create(impostersRepoConfig, logger());
   });
 
   after(async function() {
-    await mongoRepo.teardown(impostersRepoConfig, logger());
+    await repom.teardown();
   });
 
   afterEach(function () {
@@ -39,7 +41,7 @@ describe('database concurrency', function () {
     }
 
     it('should handle concurrent load correctly and performantly', async function () {
-      const repo = await (await  mongoRepo.create(impostersRepoConfig, logger())).stubsFor(1000),
+      const stubs = await repom.stubsFor(1000),
         startingValues = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
         responses = startingValues.map(responseFor),
         start = new Date(),
@@ -53,8 +55,8 @@ describe('database concurrency', function () {
       // };
       // await require('../src/mountebank').create(options)
 
-      await repo.add({ responses });
-      const saved = await repo.first(() => true),
+      await stubs.add({ responses });
+      const saved = await stubs.first(() => true),
         promises = [];
 
       for (let i = 0; i < runs; i += 1) {

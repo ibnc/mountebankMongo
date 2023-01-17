@@ -488,18 +488,6 @@ async function migrate (config, logger) {
   }
 }
 
-// For testing purposes
-async function teardown (config, logger) {
-  const mongoCfg = getMongoConfig(config, logger),
-    client = new MongoClient(mongoCfg.uri);
-  try {
-    await client.connect();
-    await client.db(mongoCfg.db).dropCollection('imposters');
-  } finally {
-    await client.close();
-  }
-}
-
 function getMongoConfig (config, logger) {
   if (!config.impostersRepositoryConfig) {
     logger.error('MissingConfigError: No configuration file for mongodb');
@@ -550,4 +538,4 @@ function createResponse (responseConfig, stubIndexFn) {
 }
 
 
-module.exports = { create, migrate, teardown };
+module.exports = { create, migrate };
