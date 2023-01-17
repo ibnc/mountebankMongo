@@ -9,6 +9,7 @@ executors:
   node-active:
     docker:
       - image: cimg/node:lts
+      - image: circleci/mongo:latest
     environment:
       - MB_SLOW_TEST_TIMEOUT: 10000
   node-current:
@@ -35,6 +36,7 @@ jobs:
   unit:
     executor: node-active
     steps:
+      - setup_remote_docker
       - checkout
       - run: npm install
       - run: npm run test:unit
