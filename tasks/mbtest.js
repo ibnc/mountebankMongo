@@ -20,8 +20,8 @@ function mochaParamsFor (testType) {
         '--reporter',
         'mocha-multi-reporters',
         '--reporter-options',
-        `configFile=../mountebank/mbTest/${testType}/config.json`,
-        `../mountebank/mbTest/${testType}/**/*.js`
+        `configFile=test/${testType}/config.json`,
+      `test/${testType}/**/*.js`
     ];
 }
 
