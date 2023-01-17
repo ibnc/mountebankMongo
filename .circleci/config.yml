@@ -49,6 +49,7 @@ jobs:
       - MB_PORT: 3535
       - MB_EXECUTABLE: /home/circleci/project/node_modules/.bin/mb
     steps:
+      - setup_remote_docker
       - checkout
       - run: npm install
       - run:
