@@ -6,7 +6,6 @@ const errors = require('./utils/errors');
 /* TODO:
  * Error handling
  * Address async/sync issues with stubsFor and stopAllSync
- * setup functional testing with mountebank server
 */
 function create (config, logger) {
   const mongoCfg = getMongoConfig(config, logger),
