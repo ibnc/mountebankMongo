@@ -3,7 +3,7 @@
 const { MongoClient, Code } = require('mongodb');
 const errors = require('./utils/errors');
 
-/* TODO:
+/* TO BE DONE:
  * Error handling
  * Address async/sync issues with stubsFor and stopAllSync
 */

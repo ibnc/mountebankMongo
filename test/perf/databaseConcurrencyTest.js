@@ -3,7 +3,7 @@
 const assert = require('assert'),
   mongoRepo = require('../../mongoDBImpostersRepository'),
   impostersRepoConfig = { impostersRepositoryConfig: './test/test_config.json' },
-  fs = require('fs-extra');
+  fs = require('fs');
 
 describe('database concurrency', function () {
   let repom;
@@ -14,7 +14,7 @@ describe('database concurrency', function () {
     repom = await mongoRepo.create(impostersRepoConfig, logger());
   });
 
-  after(async function() {
+  after(async function () {
     await repom.teardown();
   });
 
