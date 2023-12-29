@@ -1,5 +1,5 @@
 {
-  "name": "MongoDB Imposters Repository",
+  "name": "mountebank-persistence-mongodb",
   "version": "0.0.1",
   "author": "Isabelle Carter <isabellenataliecarter@gmail.com>",
   "description": "",
@@ -34,15 +34,13 @@
     "mock",
     "mongodb",
     "mountebank"
-
   ],
   "dependencies": {
     "mongodb": "4.7"
   },
   "devDependencies": {
-    "mountebank": "^2.6.0",
     "coveralls": "3.1.1",
-    "eslint": "7.32.0",
+    "eslint": "^7.32.0",
     "eslint-plugin-node": "11.1.0",
     "firebase-tools": "^6.11.0",
     "jsdoc": "3.6.7",
@@ -50,6 +48,7 @@
     "license-checker": "25.0.1",
     "mocha": "9.1.1",
     "mocha-multi-reporters": "1.5.1",
+    "mountebank": "^2.6.0",
     "nc": "^0.0.0",
     "nyc": "^15.1.0",
     "snyk": "1.705.0",

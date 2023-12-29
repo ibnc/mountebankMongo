@@ -90,10 +90,6 @@ export let options = {
  vus_max....................: 100    min=100  max=100
  */
 
-
-
-
-
 /*
 singleStub, no --datadir
 

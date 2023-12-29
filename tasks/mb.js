@@ -5,7 +5,7 @@ const fs = require('fs'),
     spawn = require('child_process').spawn,
     exec = require('child_process').exec,
     isWindows = require('os').platform().indexOf('win') === 0,
-    mbPath = process.env.MB_EXECUTABLE || path.join(process.cwd(), '../mountebank/bin/mb'),
+    mbPath = process.env.MB_EXECUTABLE || path.join(process.cwd(), 'node_modules/mountebank/bin/mb'),
     port = process.env.MB_PORT || 2525,
     pidfile = 'mb.pid';
 
