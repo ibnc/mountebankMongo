@@ -1,7 +1,7 @@
 *.swp
 *.swo
 node_modules
-mb.log
+mb*.log
 xunit.xml
 package-lock.json
 coverage
